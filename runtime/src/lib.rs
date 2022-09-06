@@ -46,6 +46,15 @@ pub use sp_runtime::{Perbill, Permill};
 /// Import the template pallet.
 pub use pallet_template;
 
+/// Import the kittens pallet.
+pub use pallet_kittens;
+
+/// Import the greeter pallet.
+pub use pallet_greeter;
+
+/// Import the playground Pallet
+pub use pallet_playground;
+
 /// An index to a block.
 pub type BlockNumber = u32;
 
@@ -270,6 +279,27 @@ impl pallet_template::Config for Runtime {
 	type Event = Event;
 }
 
+// implement kittens config trait for runtime
+impl pallet_kittens::Config for Runtime {
+	type Event = Event;
+	type Currency = Balances;
+	type KittyRandomness = RandomnessCollectiveFlip;
+	type MaxKittiesOwned = frame_support::pallet_prelude::ConstU32<100>;
+}
+
+// implement greeter config trait for runtime
+impl pallet_greeter::Config for Runtime {
+	type Event = Event;
+}
+
+// implement greeter config trait for runtime
+impl pallet_playground::Config for Runtime {
+	//TODO check if we can use any alternatives for MyGetParam and Balance types
+	type MyPlayGroundSize = frame_support::pallet_prelude::ConstU32<24_000_000>;
+	type Balance = u64;
+	type Event = Event;
+}
+
 // Create the runtime by composing the FRAME pallets that were previously configured.
 construct_runtime!(
 	pub struct Runtime
@@ -288,6 +318,12 @@ construct_runtime!(
 		Sudo: pallet_sudo,
 		// Include the custom logic from the pallet-template in the runtime.
 		TemplateModule: pallet_template,
+		// Include the custom logic from the pallet-kittens in the runtime.
+		SubstrateKitties: pallet_kittens,
+		// Include the custom logic from the pallet-greeter in the runtime.
+		SubsGreeter: pallet_greeter,
+		// Include custom logic from the pallet-playground
+		SubsPlayGround: pallet_playground,
 	}
 );
 
