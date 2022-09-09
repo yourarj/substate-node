@@ -13,6 +13,7 @@
     "libp",
     "lorri",
     "MILLISECS",
+    "NANOS",
     "offchain",
     "parachain",
     "Perbill",

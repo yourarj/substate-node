@@ -295,7 +295,7 @@ impl pallet_greeter::Config for Runtime {
 // implement greeter config trait for runtime
 impl pallet_playground::Config for Runtime {
 	//TODO check if we can use any alternatives for MyGetParam and Balance types
-	type MyPlayGroundSize = frame_support::pallet_prelude::ConstU32<24_000_000>;
+	type MyGetParam = frame_support::pallet_prelude::ConstU32<24_000_000>;
 	type Balance = u64;
 	type Event = Event;
 }

@@ -1,6 +1,3 @@
-// as the runtime is compiled as bin and wasm module
-// by applying `no_std` attribute we make sure it works with
-// wasm too
 #![cfg_attr(not(feature = "std"), no_std)]
 
 pub use pallet::*; // reexport in crate namespace for `construct_runtime!`
@@ -9,12 +6,9 @@ pub use pallet::*; // reexport in crate namespace for `construct_runtime!`
 // NOTE: The name of the pallet is provided by `construct_runtime` and is used as
 // the unique identifier for the pallet's storage. It is not defined in the pallet itself.
 pub mod pallet {
-	// Import various types used in the pallet definition
-	use frame_support::pallet_prelude::*;
-	// Import some system helper types.
-	use frame_system::pallet_prelude::*;
+	use frame_support::{pallet_prelude::*, weights::constants::WEIGHT_PER_NANOS}; // Import various types used in the pallet definition
+	use frame_system::pallet_prelude::*; // Import some system helper types.
 
-	// type alias for easy access
 	type BalanceOf<T> = <T as Config>::Balance;
 
 	// Define the generic parameter of the pallet
@@ -22,19 +16,18 @@ pub mod pallet {
 	// for the pallet's constants.
 	#[pallet::config]
 	pub trait Config: frame_system::Config {
-		/// playground size
-		#[pallet::constant]
-		type MyPlayGroundSize: Get<u32>;
-		type Balance: Parameter + From<u8> + MaxEncodedLen;
+		#[pallet::constant] // put the constant in metadata
+		type MyGetParam: Get<u32>;
+		type Balance: Parameter + MaxEncodedLen + From<u8>;
 		type Event: From<Event<Self>> + IsType<<Self as frame_system::Config>::Event>;
 	}
 
 	// Define some additional constant to put into the constant metadata.
 	#[pallet::extra_constants]
 	impl<T: Config> Pallet<T> {
-		/// maximum players allowed on ground
-		fn max_players_allowed() -> u128 {
-			13u128
+		/// Some description
+		fn extra_constant_name() -> u128 {
+			4u128
 		}
 	}
 
@@ -47,7 +40,7 @@ pub mod pallet {
 	#[pallet::hooks]
 	impl<T: Config> Hooks<BlockNumberFor<T>> for Pallet<T> {
 		fn on_initialize(_n: BlockNumberFor<T>) -> Weight {
-			frame_support::weights::constants::WEIGHT_PER_MICROS
+			WEIGHT_PER_NANOS
 		}
 
 		// can implement also: on_finalize, on_runtime_upgrade, offchain_worker, ...
@@ -70,7 +63,7 @@ pub mod pallet {
 			#[pallet::compact] _foo: u32,
 		) -> DispatchResultWithPostInfo {
 			let _ = origin;
-			Ok(().into())
+			Ok(Pays::No.into())
 		}
 	}
 
@@ -88,10 +81,7 @@ pub mod pallet {
 	//
 	// The macro generates event metadata, and derive Clone, Debug, Eq, PartialEq and Codec
 	#[pallet::event]
-	// Additional argument to specify the metadata to use for given type.
-	// FIXME: When uncommented throws 'expected `generate_deposit`'
-	//#[pallet::metadata(BalanceOf<T> = "Balance", u32 = "Other")]
-	// Generate a funciton on Pallet to deposit an event.
+	// Generate a function on Pallet to deposit an event.
 	#[pallet::generate_deposit(pub(super) fn deposit_event)]
 	pub enum Event<T: Config> {
 		/// doc comment put in metadata
@@ -105,7 +95,6 @@ pub mod pallet {
 		Something(u32),
 	}
 
-	// TODO: get hands dirty with this too type_value
 	// Define a struct which implements `frame_support::traits::Get<T::Balance>` (optional).
 	#[pallet::type_value]
 	pub(super) fn MyDefault<T: Config>() -> T::Balance {
@@ -119,9 +108,9 @@ pub mod pallet {
 	//
 	// The macro expands the metadata for the storage item with the type used:
 	// * for a storage value the type of the value is copied into the metadata
-	// * for a storage map the type of the values and the type of the key is copied into the
-	//   metadata
-	// * for a storage double map the types of the values and keys are copied into the metadata.
+	// * for a storage map the type of the values and the type of the key is copied into the metadata
+	// * for a storage double map the types of the values and keys are copied into the
+	//   metadata.
 	//
 	// NOTE: The generic `Hasher` must implement the `StorageHasher` trait (or the type is not
 	// usable at all). We use [`StorageHasher::METADATA`] for the metadata of the hasher of the
@@ -130,13 +119,16 @@ pub mod pallet {
 	pub(super) type MyStorageValue<T: Config> =
 		StorageValue<Value = T::Balance, QueryKind = ValueQuery, OnEmpty = MyDefault<T>>;
 
+	#[pallet::storage]
+	pub(super) type MyAnotherStorageValue<T: Config> =
+		StorageValue<Value = T::Balance, QueryKind = ValueQuery, OnEmpty = MyDefault<T>>;
+
 	// Another storage declaration
 	#[pallet::storage]
-	// optional getter of MyStorage
 	#[pallet::getter(fn my_storage)]
+	#[pallet::storage_prefix = "SomeOtherName"]
 	pub(super) type MyStorage<T> = StorageMap<Hasher = Blake2_128Concat, Key = u32, Value = u32>;
 
-	// TODO: Get hands dirty with genesis config
 	// Declare the genesis config (optional).
 	//
 	// The macro accepts either a struct or an enum; it checks that generics are consistent.
@@ -145,11 +137,10 @@ pub mod pallet {
 	#[pallet::genesis_config]
 	#[derive(Default)]
 	pub struct GenesisConfig {
-		pub my_field: u32,
+		my_field: u32,
 	}
 
-	// TODO: Get hands dirty with genesis build and get idea on how it's different from genesis
-	// config Declare genesis builder. (This is need only if GenesisConfig is declared)
+	// Declare genesis builder. (This is need only if GenesisConfig is declared)
 	#[pallet::genesis_build]
 	impl<T: Config> GenesisBuild<T> for GenesisConfig {
 		fn build(&self) {}
@@ -158,12 +149,8 @@ pub mod pallet {
 	// Declare a pallet origin (this is optional).
 	//
 	// The macro accept type alias or struct or enum, it checks generics are consistent.
-	// TODO Get clarity on pallet::origin here and uncomment relevant code
-	// FIXME and fix this issue
-	/*
-		#[pallet::origin]
-		pub struct Origin<T>(PhantomData<T>);
-	*/
+	// #[pallet::origin]
+	// pub struct Origin<T>(PhantomData<T>);
 
 	// Declare validate_unsigned implementation (this is optional).
 	#[pallet::validate_unsigned]
@@ -177,36 +164,34 @@ pub mod pallet {
 		}
 	}
 
-	// TODO Get clarity on inherents here
-	// FIXME and fix this issue
-	/*
 	// Declare inherent provider for pallet (this is optional).
 	#[pallet::inherent]
 	impl<T: Config> ProvideInherent for Pallet<T> {
 		type Call = Call<T>;
 		type Error = InherentError;
-
+		//
 		const INHERENT_IDENTIFIER: InherentIdentifier = INHERENT_IDENTIFIER;
-
+		//
 		fn create_inherent(_data: &InherentData) -> Option<Self::Call> {
-			unimplemented!();
+			None
 		}
-
+		//
 		fn is_inherent(_call: &Self::Call) -> bool {
-			unimplemented!();
+			false
 		}
 	}
-
+	//
 	// Regular rust code needed for implementing ProvideInherent trait
+	//
 	#[derive(codec::Encode, sp_runtime::RuntimeDebug)]
 	#[cfg_attr(feature = "std", derive(codec::Decode))]
 	pub enum InherentError {}
-
+	//
 	impl sp_inherents::IsFatalError for InherentError {
 		fn is_fatal_error(&self) -> bool {
-			unimplemented!();
+			false
 		}
 	}
+	//
 	pub const INHERENT_IDENTIFIER: sp_inherents::InherentIdentifier = *b"testpall";
-	*/
 }
